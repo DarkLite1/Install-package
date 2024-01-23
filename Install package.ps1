@@ -126,66 +126,66 @@ Process {
                     LiteralPath = "\\$computer\$destinationPathUnc\$($packageItem.BaseName) - installed.txt"
                     PathType    = 'Leaf'
                 }
-                if (-not (Test-Path @testParams)) {
-                    #region Install package on remote computer
-                    Write-Verbose "'$computer' install package"
+                if (Test-Path @testParams) {
+                    Write-Verbose "'$computer' package already installed"
+                    Continue
+                }
 
-                    $invokeParams = @{
-                        ComputerName = $computer
-                        ScriptBlock  = {
-                            Start-Process 'msiexec.exe' -ArgumentList $using:argumentList -Wait
-                        }
-                        ErrorAction  = 'SilentlyContinue'
+                #region Install package on remote computer
+                Write-Verbose "'$computer' install package"
+
+                $invokeParams = @{
+                    ComputerName = $computer
+                    ScriptBlock  = {
+                        Start-Process 'msiexec.exe' -ArgumentList $using:argumentList -Wait
                     }
-                    Invoke-Command @invokeParams
-                    #endregion
+                    ErrorAction  = 'SilentlyContinue'
+                }
+                Invoke-Command @invokeParams
+                #endregion
 
-                    #region Test installation
-                    $installed = $false
-                    $maxCount = 15
-                    $currentCount = 0
+                #region Test installation
+                $installed = $false
+                $maxCount = 15
+                $currentCount = 0
 
-                    while (
-                        (-not $installed) -and
-                        ($currentCount -lt $maxCount)
-                    ) {
-                        $currentCount++
+                while (
+                    (-not $installed) -and
+                    ($currentCount -lt $maxCount)
+                ) {
+                    $currentCount++
 
-                        Write-Verbose "'$computer' try connecting ($currentCount\$maxCount)"
-                        Start-Sleep -Seconds 1
+                    Write-Verbose "'$computer' try connecting ($currentCount\$maxCount)"
+                    Start-Sleep -Seconds 1
 
-                        try {
-                            $sessionParams = @{
-                                ComputerName      = $computer
-                                ConfigurationName = $PowerShellEndpointVersion
-                                ErrorAction       = 'Stop'
-                            }
-                            New-PSSession @sessionParams
-                            $installed = $true
+                    try {
+                        $sessionParams = @{
+                            ComputerName      = $computer
+                            ConfigurationName = $PowerShellEndpointVersion
+                            ErrorAction       = 'Stop'
                         }
-                        catch {
-                            $lastError = $_
-                            $Error.RemoveAt(0)
-                        }
+                        New-PSSession @sessionParams
+                        $installed = $true
                     }
+                    catch {
+                        $lastError = $_
+                        $Error.RemoveAt(0)
+                    }
+                }
 
-                    if ($installed) {
-                        Write-Verbose "'$computer' package installed successfully"
+                if ($installed) {
+                    Write-Verbose "'$computer' package installed successfully"
 
-                        'Installed' | Out-File -LiteralPath $testParams.LiteralPath
-                    }
-                    else {
-                        $failedInstalls += @{
-                            Date         = Get-Date
-                            ComputerName = $computer
-                        }
-                        throw "Package not installed: $lastError"
-                    }
-                    #endregion
+                    'Installed' | Out-File -LiteralPath $testParams.LiteralPath
                 }
                 else {
-                    Write-Verbose "'$computer' package already installed"
+                    $failedInstalls += @{
+                        Date         = Get-Date
+                        ComputerName = $computer
+                    }
+                    throw "Package not installed: $lastError"
                 }
+                #endregion
             }
             catch {
                 throw "Failed installing package: $_"
