@@ -78,8 +78,7 @@ Begin {
     Write-Verbose "Found '$($computerNames.Count)' unique computer names"
 
     if (-not $computerNames) {
-        Write-Verbose "No computer names found in the import file '$ImportFile'"
-        exit
+        throw "No computer names found in the import file '$ImportFile'"
     }
     #endregion
 
