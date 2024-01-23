@@ -136,7 +136,12 @@ Process {
                 $invokeParams = @{
                     ComputerName = $computer
                     ScriptBlock  = {
-                        Start-Process 'msiexec.exe' -ArgumentList $using:argumentList -Wait
+                        $params = @{
+                            FilePath     = 'msiexec.exe'
+                            ArgumentList = $using:argumentList
+                            Wait         = $true
+                        }
+                        Start-Process @params
                     }
                     ErrorAction  = 'SilentlyContinue'
                 }
