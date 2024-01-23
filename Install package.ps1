@@ -76,6 +76,11 @@ Begin {
     Sort-Object -Unique
 
     Write-Verbose "Found '$($computerNames.Count)' unique computer names"
+
+    if (-not $computerNames) {
+        Write-Verbose "No computer names found in the import file '$ImportFile'"
+        exit
+    }
     #endregion
 
     $packageItem = Get-Item -LiteralPath $PackagePath
