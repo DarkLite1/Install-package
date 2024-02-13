@@ -51,7 +51,7 @@
 #>
 
 Param (
-    [String]$ImportFile = 'T:\Test\Brecht\PowerShell\PowerShell.7 not compatible clients 20240123.csv',
+    [String]$ImportFile = 'T:\Test\Brecht\PowerShell\Connection logs\Remote computers.csv',
     [String]$PackagePath = 'C:\Users\bgijbels\Downloads\PowerShell-7.4.1-win-x64.msi',
     [String]$DestinationFolder = 'c:\Temp',
     [String]$PowerShellEndpointVersion = 'PowerShell.7',
@@ -100,6 +100,7 @@ Process {
                 $testParams = @{
                     LiteralPath = "\\$computer\$destinationPathUnc\$($packageItem.Name)"
                     PathType    = 'Leaf'
+                    ErrorAction = 'Stop'
                 }
                 if (-not (Test-Path @testParams)) {
                     Write-Verbose "'$computer' copy package to computer"
@@ -124,6 +125,7 @@ Process {
                 $testParams = @{
                     LiteralPath = "\\$computer\$destinationPathUnc\$($packageItem.BaseName) - installed.txt"
                     PathType    = 'Leaf'
+                    ErrorAction = 'Stop'
                 }
                 if (Test-Path @testParams) {
                     Write-Verbose "'$computer' package already installed"
@@ -186,6 +188,7 @@ Process {
                     $failedInstalls += @{
                         Date         = Get-Date
                         ComputerName = $computer
+                        Error        = $lastError
                     }
                     throw "Package not installed: $lastError"
                 }
@@ -196,13 +199,19 @@ Process {
             }
         }
         catch {
-            Write-Warning "'$computer' Failed installing package '$($packageItem.Name)': $_"
+            $failedInstalls += @{
+                Date         = Get-Date
+                ComputerName = $computer
+                Error        = $_
+            }
+
+            Write-Warning "'$computer' Failed: $_"
         }
     }
 
     #region Report results
     if ($failedInstalls) {
-        Write-Warning "Check log file '$FailedInstallLogFile' for failures"
+        Write-Warning "$($failedInstalls.Count) failures, check log file '$FailedInstallLogFile'"
         $failedInstalls | Export-Csv -Path $FailedInstallLogFile
     }
     else {
