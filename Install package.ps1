@@ -55,7 +55,7 @@ Param (
     [String]$PackagePath = 'C:\Users\bgijbels\Downloads\PowerShell-7.4.1-win-x64.msi',
     [String]$DestinationFolder = 'c:\Temp',
     [String]$PowerShellEndpointVersion = 'PowerShell.7',
-    [String]$FailedInstallLogFile = 'T:\Test\Brecht\PowerShell\FailedInstalls.csv'
+    [String]$FailedInstallLogFile = 'T:\Test\Brecht\PowerShell\Connection logs\Failed installs.csv'
 )
 
 Begin {
