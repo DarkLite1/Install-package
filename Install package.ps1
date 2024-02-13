@@ -54,7 +54,7 @@ Param (
     [String]$ImportFile = 'T:\Test\Brecht\PowerShell\Connection logs\Remote computers.csv',
     [String]$PackagePath = 'C:\Users\bgijbels\Downloads\PowerShell-7.4.1-win-x64.msi',
     [String]$DestinationFolder = 'c:\Temp',
-    [String]$PowerShellEndpointVersion = 'PowerShell.7',
+    [String]$PowerShellEndpointVersion = 'PowerShell.7.4.1',
     [String]$FailedInstallLogFile = 'T:\Test\Brecht\PowerShell\Connection logs\Failed installs.csv'
 )
 
