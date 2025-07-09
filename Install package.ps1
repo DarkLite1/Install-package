@@ -71,7 +71,9 @@ begin {
         while ($currentCount -lt $RetryCount) {
             $currentCount++
 
-            Write-Verbose "'$ComputerName' try connecting ($currentCount\$RetryCount)"
+            if ($RetryCount -ne 1) {
+                Write-Verbose "'$ComputerName' try connecting ($currentCount\$RetryCount)"
+            }
 
             try {
                 $sessionParams = @{
@@ -95,7 +97,12 @@ begin {
             }
         }
 
-        Write-Warning "'$ComputerName' connection to '$PowerShellEndpointVersion' failed after $RetryCount attempts: $lastError"
+        if ($RetryCount -eq 1) {
+            Write-Warning "'$ComputerName' connecting to '$PowerShellEndpointVersion' failed: $lastError"
+        }
+        else {
+            Write-Warning "'$ComputerName' connecting to '$PowerShellEndpointVersion' failed after $RetryCount attempts: $lastError"
+        }
 
         return $false
     }
