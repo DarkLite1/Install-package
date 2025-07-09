@@ -83,7 +83,7 @@ begin {
                 }
                 $psSession = New-PSSession @sessionParams
 
-                Write-Verbose "'$ComputerName' connection to '$PowerShellEndpointVersion' successful"
+                Write-Verbose "'$ComputerName' connecting to '$PowerShellEndpointVersion' successful"
 
                 Remove-PSSession -Session $psSession
 
