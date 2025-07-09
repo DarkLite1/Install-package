@@ -59,6 +59,47 @@ param (
 )
 
 begin {
+    function Test-IsInstalledHC {
+        param (
+            [Parameter(Mandatory)]
+            [String]$ComputerName
+        )
+
+        $maxCount = 15
+        $currentCount = 0
+
+        while ($currentCount -lt $maxCount) {
+            $currentCount++
+
+            Write-Verbose "'$ComputerName' try connecting ($currentCount\$maxCount)"
+
+            try {
+                $sessionParams = @{
+                    ComputerName      = $ComputerName
+                    ConfigurationName = $PowerShellEndpointVersion
+                    ErrorAction       = 'Stop'
+                }
+                $psSession = New-PSSession @sessionParams
+
+                Write-Verbose "'$ComputerName' connection to '$PowerShellEndpointVersion' successful"
+
+                Remove-PSSession -Session $psSession
+
+                return $true
+            }
+            catch {
+                Start-Sleep -Seconds 1
+
+                $lastError = $_
+                $Error.RemoveAt(0)
+            }
+        }
+
+        Write-Warning "'$ComputerName' connection to '$PowerShellEndpointVersion' failed after $maxCount attempts: $lastError"
+
+        return $false
+    }
+
     $VerbosePreference = 'Continue'
 
     #region Test
@@ -95,6 +136,10 @@ process {
         $computerNames
     ) {
         try {
+            if (Test-IsInstalledHC -ComputerName $computer) {
+                continue
+            }
+
             #region Copy package to remote computer
             try {
                 $testParams = @{
@@ -121,18 +166,8 @@ process {
             }
             #endregion
 
+            #region Install package on remote computer
             try {
-                $testParams = @{
-                    LiteralPath = "\\$computer\$destinationPathUnc\$($packageItem.BaseName) - installed.txt"
-                    PathType    = 'Leaf'
-                    ErrorAction = 'Stop'
-                }
-                if (Test-Path @testParams) {
-                    Write-Verbose "'$computer' package already installed"
-                    continue
-                }
-
-                #region Install package on remote computer
                 Write-Verbose "'$computer' install package"
 
                 $invokeParams = @{
@@ -148,59 +183,17 @@ process {
                     ErrorAction  = 'SilentlyContinue'
                 }
                 Invoke-Command @invokeParams
-                #endregion
-
-                #region Test installation
-                $installed = $false
-                $maxCount = 15
-                $currentCount = 0
-
-                while (
-                    (-not $installed) -and
-                    ($currentCount -lt $maxCount)
-                ) {
-                    $currentCount++
-
-                    Write-Verbose "'$computer' try connecting ($currentCount\$maxCount)"
-                    Start-Sleep -Seconds 1
-
-                    try {
-                        $sessionParams = @{
-                            ComputerName      = $computer
-                            ConfigurationName = $PowerShellEndpointVersion
-                            ErrorAction       = 'Stop'
-                        }
-                        $psSession = New-PSSession @sessionParams
-                        $installed = $true
-
-                        Write-Verbose "'$computer' connection to '$PowerShellEndpointVersion' successful"
-
-                        Remove-PSSession -Session $psSession
-                    }
-                    catch {
-                        $lastError = $_
-                        $Error.RemoveAt(0)
-                    }
-                }
-
-                if ($installed) {
-                    Write-Verbose "'$computer' package installed successfully"
-
-                    'Installed' | Out-File -LiteralPath $testParams.LiteralPath
-                }
-                else {
-                    $failedInstalls += @{
-                        Date         = Get-Date
-                        ComputerName = $computer
-                        Error        = $lastError
-                    }
-                    throw "Package not installed: $lastError"
-                }
-                #endregion
             }
             catch {
                 throw "Failed installing package: $_"
             }
+            #endregion
+
+            if (-not (Test-IsInstalledHC -ComputerName $computer)) {
+                throw "Installation failed, PowerShell remoting connection to '$computer' with '$PowerShellEndpointVersion' failed"
+            }
+
+            Write-Verbose "'$computer' installation successful"
         }
         catch {
             $failedInstalls += @{
@@ -216,6 +209,7 @@ process {
     #region Report results
     if ($failedInstalls) {
         Write-Warning "$($failedInstalls.Count) failures, check log file '$FailedInstallLogFile'"
+
         $failedInstalls | Export-Csv -Path $FailedInstallLogFile
     }
     else {
