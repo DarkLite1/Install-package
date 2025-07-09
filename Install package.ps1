@@ -50,7 +50,7 @@
         Install remotely
 #>
 
-Param (
+param (
     [String]$ImportFile = 'T:\Test\Brecht\PowerShell\Connection logs\Remote computers.csv',
     [String]$PackagePath = 'C:\Users\bgijbels\Downloads\PowerShell-7.4.1-win-x64.msi',
     [String]$DestinationFolder = 'c:\Temp',
@@ -58,7 +58,7 @@ Param (
     [String]$FailedInstallLogFile = 'T:\Test\Brecht\PowerShell\Connection logs\Failed installs.csv'
 )
 
-Begin {
+begin {
     $VerbosePreference = 'Continue'
 
     #region Test
@@ -89,7 +89,7 @@ Begin {
     $argumentList = '/package "{0}\{1}" /quiet ADD_EXPLORER_CONTEXT_MENU_OPENPOWERSHELL=1 ENABLE_PSREMOTING=1 REGISTER_MANIFEST=1' -f $DestinationFolder, $packageItem.Name
 }
 
-Process {
+process {
     foreach (
         $computer in
         $computerNames
@@ -129,7 +129,7 @@ Process {
                 }
                 if (Test-Path @testParams) {
                     Write-Verbose "'$computer' package already installed"
-                    Continue
+                    continue
                 }
 
                 #region Install package on remote computer
@@ -170,8 +170,12 @@ Process {
                             ConfigurationName = $PowerShellEndpointVersion
                             ErrorAction       = 'Stop'
                         }
-                        New-PSSession @sessionParams
+                        $psSession = New-PSSession @sessionParams
                         $installed = $true
+
+                        Write-Verbose "'$computer' connection to '$PowerShellEndpointVersion' successful"
+
+                        Remove-PSSession -Session $psSession
                     }
                     catch {
                         $lastError = $_
