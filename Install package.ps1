@@ -62,16 +62,16 @@ begin {
     function Test-IsInstalledHC {
         param (
             [Parameter(Mandatory)]
-            [String]$ComputerName
+            [String]$ComputerName,
+            [int]$RetryCount = 15
         )
 
-        $maxCount = 15
         $currentCount = 0
 
-        while ($currentCount -lt $maxCount) {
+        while ($currentCount -lt $RetryCount) {
             $currentCount++
 
-            Write-Verbose "'$ComputerName' try connecting ($currentCount\$maxCount)"
+            Write-Verbose "'$ComputerName' try connecting ($currentCount\$RetryCount)"
 
             try {
                 $sessionParams = @{
@@ -95,7 +95,7 @@ begin {
             }
         }
 
-        Write-Warning "'$ComputerName' connection to '$PowerShellEndpointVersion' failed after $maxCount attempts: $lastError"
+        Write-Warning "'$ComputerName' connection to '$PowerShellEndpointVersion' failed after $RetryCount attempts: $lastError"
 
         return $false
     }
@@ -136,7 +136,7 @@ process {
         $computerNames
     ) {
         try {
-            if (Test-IsInstalledHC -ComputerName $computer) {
+            if (Test-IsInstalledHC -ComputerName $computer -RetryCount 1) {
                 continue
             }
 
@@ -189,7 +189,9 @@ process {
             }
             #endregion
 
-            if (-not (Test-IsInstalledHC -ComputerName $computer)) {
+            if (-not
+                (Test-IsInstalledHC -ComputerName $computer -RetryCount 15)
+            ) {
                 throw "Installation failed, PowerShell remoting connection to '$computer' with '$PowerShellEndpointVersion' failed"
             }
 
